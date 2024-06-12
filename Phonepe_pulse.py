@@ -20,9 +20,6 @@ from datetime import datetime
 import  streamlit_toggle as tog
 import plotly.graph_objs as go
 import matplotlib.pyplot as plt 
-#-----------------------------------------------------------------------------------------------------#
-# set logging details 
-#-----------------------------------------------------------------------------------------------------#
 
 #-----------------------------------------------------------------------------------------------------#
 # Defining Database Connection 
@@ -66,19 +63,26 @@ with st.sidebar:
         (Q1,Q2,Q3,Q4,Q5))
 
     if option == Q1: 
-        #curr.execute("select State, sum(Transacion_amount), sum(Transacion_count) from phonepe.aggr_st_trans group by State" ) 
-        curr.execute("select State, CASE WHEN sum(Transacion_amount) >= 1000000000000 THEN CONCAT(ROUND(sum(Transacion_amount) / 1000000000000, 2), ' TN') WHEN sum(Transacion_amount) >= 1000000000 THEN CONCAT(ROUND(sum(Transacion_amount) / 1000000000, 2), ' BN') ELSE CONCAT(sum(Transacion_amount), ' Units') END AS formatted_Transacion_amount, CASE WHEN sum(Transacion_count) >= 1000000000000 THEN CONCAT(ROUND(sum(Transacion_count) / 1000000000000, 2), ' TN') WHEN sum(Transacion_count) >= 1000000000 THEN CONCAT(ROUND(sum(Transacion_count) / 1000000000, 2), ' BN') ELSE CONCAT(sum(Transacion_count), ' Units')	END AS formatted_Transacion_count from phonepe.aggr_st_trans group by State")
+        curr.execute("select State, sum(Transacion_amount), sum(Transacion_count) from phonepe.aggr_st_trans group by State" ) 
+        #curr.execute("select State, CASE WHEN sum(Transacion_amount) >= 1000000000000 THEN CONCAT(ROUND(sum(Transacion_amount) / 1000000000000, 2), ' TN') WHEN sum(Transacion_amount) >= 1000000000 THEN CONCAT(ROUND(sum(Transacion_amount) / 1000000000, 2), ' BN') ELSE CONCAT(sum(Transacion_amount), ' Units') END AS formatted_Transacion_amount, CASE WHEN sum(Transacion_count) >= 1000000000000 THEN CONCAT(ROUND(sum(Transacion_count) / 1000000000000, 2), ' TN') WHEN sum(Transacion_count) >= 1000000000 THEN CONCAT(ROUND(sum(Transacion_count) / 1000000000, 2), ' BN') ELSE CONCAT(sum(Transacion_count), ' Units')	END AS formatted_Transacion_count from phonepe.aggr_st_trans group by State")
         dtls = curr.fetchall() 
         df = pd.DataFrame(dtls, columns= ['States', 'Total Transaction Amount', 'Total Transacion Count'])
+        csv_name = "Agg_map_trans1.csv"
+        csv_file=df.to_csv(csv_name,index=False,mode='w')
+        csv = pd.read_csv(csv_name)
+        #print(csv.values)
         fig = px.choropleth(
-            df,
+            csv,
+            #dtls,
             geojson="https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson",
             featureidkey='properties.ST_NM',
             locations='States',
-            color='Total Transaction Amount',
+            #color='Total Transaction Amount',
+            color= 'States',
+            #color_continuous_scale=px.colors.sequential.Plasma,
             hover_name='States',
             hover_data=['Total Transacion Count', 'States'],
-            color_continuous_scale="rdylgn",
+            color_continuous_scale="mint",
             scope='asia'
             )
 
@@ -87,24 +91,30 @@ with st.sidebar:
         showframe=False,showcoastlines=False,),width=1500, height=500, margin={"r":0,"t":0,"l":0,"b":0}, hovermode='x unified')
 
     elif option == Q2:   
-        curr.execute("select State, CASE WHEN sum(No_of_reg_users) >= 1000000000 THEN CONCAT(ROUND(sum(No_of_reg_users) / 1000000000, 2), ' BN') WHEN sum(No_of_reg_users) >= 1000000 THEN CONCAT(ROUND(sum(No_of_reg_users) / 1000000, 2), ' MN') ELSE CONCAT(sum(No_of_reg_users), ' Units') END AS formatted_No_of_reg_users, sum(round(Percentage_share,2)) from phonepe.aggr_st_users group by State" ) 
+        #curr.execute("select State, CASE WHEN sum(No_of_reg_users) >= 1000000000 THEN CONCAT(ROUND(sum(No_of_reg_users) / 1000000000, 2), ' BN') WHEN sum(No_of_reg_users) >= 1000000 THEN CONCAT(ROUND(sum(No_of_reg_users) / 1000000, 2), ' MN') ELSE CONCAT(sum(No_of_reg_users), ' Units') END AS formatted_No_of_reg_users, sum(round(Percentage_share,2)) from phonepe.aggr_st_users group by State" ) 
+        curr.execute("select State, sum(Transacion_amount), sum(Transacion_count) from phonepe.aggr_st_trans group by State" ) 
         dtls = curr.fetchall() 
         df = pd.DataFrame(dtls, columns= ['States', 'Total Registered Users', 'Total Percentage Share'])
+        csv_name = "Agg_map_users.csv"
+        csv_file=df.to_csv(csv_name,index=False,mode='w')
+        csv = pd.read_csv(csv_name)
         
         fig = px.choropleth_mapbox(
-            df,
+            #df,
+            csv,
             geojson="https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson",
             featureidkey='properties.ST_NM',
             locations='States', 
             color='Total Registered Users',
+            #color='States',
             hover_name='States',
             hover_data='Total Percentage Share',
             color_continuous_scale="ylgnbu", 
             mapbox_style='carto-positron',
             center= {'lat':24, 'lon' :78},
-            zoom=3, opacity=0.5
+            zoom=3, opacity=0.75
             )
-        fig.update_layout(title_text=f'Phone Pe Transaction Details - India', geo=dict(
+        fig.update_layout(title_text=f'Phone Pe Users Details - India', geo=dict(
         showframe=False,showcoastlines=False,), margin={"r":0,"t":0,"l":0,"b":0}, hovermode='x unified')
         fig.update_geos(fitbounds='locations', visible=False, projection_type="satellite")
         fig.update_traces(marker_line_width=1)
@@ -190,7 +200,7 @@ with st.sidebar:
             hover_data='Total Insurance Value',
             color_continuous_scale="ylgnbu", 
             )
-        fig.update_layout(title_text=f'Phone Pe Transaction Details - India', geo=dict(
+        fig.update_layout(title_text=f'Phone Pe Insurance Details - India', geo=dict(
         showframe=False,showcoastlines=False,), width=1500, height=500, margin={"r":0,"t":0,"l":0,"b":0}, hovermode='x unified')
         fig.update_geos(fitbounds='locations', visible=False)
         fig.update_traces(marker_line_width=1)
